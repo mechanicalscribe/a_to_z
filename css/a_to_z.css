@@ -1,0 +1,48 @@
+body {
+    background-color: #CCC;
+}
+
+.container {
+    background-color: #FFF;
+    width: 100%;
+    max-width: 800px;
+    margin: 10px auto;
+    padding: 10px;
+}
+
+.scoreboard {
+    width: 100%;
+    text-align: center;
+}
+
+.counts .none {
+    color: #CCC;
+}
+
+.counts .one {
+    color: #000;
+}
+
+.counts .some {
+    color: #FCC;
+}
+
+.counts .many {
+    color: #F00;
+}
+
+.letters {
+    font-size: 24px;
+    font-family: 'Courier New', serif;
+}
+
+.counts {
+    font-size: 14px;
+}
+
+.sentence {
+    width: 100%;
+    max-width: 500px;
+    margin: 10px auto;
+    display: block;
+}

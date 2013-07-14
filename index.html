@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>A to Z: Find sentences that use every letter in the alphabet</title>
+        <link rel="stylesheet" href="css/bootstrap.css">
+        <link rel="stylesheet" href="css/a_to_z.css">
+    </head>
+    <body>
+        <div class="container">
+            <div class="alphabet">
+                <table class="scoreboard">
+                    <tr class="letters" id="letters"></tr>
+                    <tr class="counts" id="counts"></tr>
+                </table>                
+            </div>
+            <textarea class="sentence" rows=5></textarea>
+            <br />
+            <!--<button class="btn">Submit</button>-->
+            <div class="suggestions"></div>
+        </div>
+        <script type="text/javascript" src="js/d3.v3.min.js"></script>
+        <script>
+/*global d3 $ */
+//SCOREBOARD
+var alphabet = [],
+    values = {},
+    suggestions = true;
+    
+for (var a = 65; a < 91; a += 1) {
+    alphabet.push(String.fromCharCode(a));
+    values[String.fromCharCode(a)] = 0;
+}    
+
+d3.select("#letters").selectAll(".letter")
+    .data(alphabet)
+    .enter()
+    .append("td")
+    .attr("class", "letter")
+    .html(function(d) {
+        return d; 
+    });
+
+d3.select("#counts").selectAll(".count")
+    .data(d3.entries(values))
+    .enter()
+    .append("td")
+    .attr("class", function(d) {
+        return "count none";
+    })
+    .html(0);
+
+//ALPHABET
+d3.text("dictionaries/scrabble.txt", function(d) {
+    var words = d.toLowerCase().split("\n");
+
+    var t = trie(words);
+    console.log(t);
+
+    d3.select(".sentence").on("keyup", function() {
+        alphabet.forEach(function(d) {
+            values[d] = 0; 
+        });
+        this.value.toUpperCase().split("").forEach(function(d) {
+            values[d] += 1;
+        });
+        
+        // update score
+        d3.select("#counts").selectAll(".count")
+            .data(d3.entries(values))
+            .html(function(d) {
+                return d.value;
+            })
+            .attr("class", function(d) {
+                if (d.value === 0) {
+                    return "count none";
+                } else if (d.value === 1) {
+                    return "count one";
+                } else if (d.value < 5) {
+                    return "count some";
+                }
+                return "count many";
+            });
+
+        // get suggestions         
+        if (!suggestions) {
+            return;
+        }
+        var remains = d3.entries(values).filter(function(d) {
+            return d.value === 0;
+        }).map(function(d) {
+            return d.key;
+        });
+        console.log(remains);        
+    });
+});
+
+function trie(words) {
+    var trie = {};
+    // Go through all the words in the dictionary
+    for ( var i = 0, l = words.length; i < l; i++ ) {
+        // Get all the letters that we need
+        var word = words[i], letters = word.split(""), cur = trie;
+     
+        // Loop through the letters
+        for ( var j = 0; j < letters.length; j++ ) {
+            var letter = letters[j], pos = cur[ letter ];
+     
+            // If nothing exists for this letter, create a leaf
+            if ( pos == null ) {
+                // If it's the end of the word, set a 0,
+                // otherwise make an object so we can continue
+                cur = cur[ letter ] = j === letters.length - 1 ? 0 : {};
+           
+            // If a final leaf already exists we need to turn it
+            // into an object to continue traversing
+            } else if ( pos === 0 ) {
+                cur = cur[ letter ] = { $: 0 };
+     
+            // Otherwise there is nothing to be set, so continue on
+            } else {
+                cur = cur[ letter ];
+            }
+        }
+    }
+    return trie;
+}
+        </script>
+    </body>
+</html>
