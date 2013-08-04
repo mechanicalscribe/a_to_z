@@ -6,25 +6,37 @@
         <link rel="stylesheet" href="css/a_to_z.css">
     </head>
     <body>
-        <div class="container">
+        <div class="app">
             <div class="alphabet">
                 <table class="scoreboard">
                     <tr class="letters" id="letters"></tr>
                     <tr class="counts" id="counts"></tr>
                 </table>                
             </div>
-            <textarea class="sentence" rows=5></textarea>
+            <div class="sentences">
+                <div class="sentence" id="display"></div>
+                <div class="sentence" id="sentence"></div>
+            </div>
             <br />
             <!--<button class="btn">Submit</button>-->
-            <div class="suggestions"></div>
+            <div class="board">Characters: <span id="myscore">Use all the letters to get a score</span></div>
+            <div class="send">
+            </div>
         </div>
         <script type="text/javascript" src="js/d3.v3.min.js"></script>
+        <script type="text/javascript" src="dictionaries/suffix.js"></script>
+        <script type="text/javascript" src="js/utils.js"></script>
         <script>
 /*global d3 $ */
+
+d3.select(".send").style("display", "none");
+
 //SCOREBOARD
 var alphabet = [],
     values = {},
     suggestions = true;
+    
+document.getElementById("sentence").contentEditable='true';
     
 for (var a = 65; a < 91; a += 1) {
     alphabet.push(String.fromCharCode(a));
@@ -49,81 +61,106 @@ d3.select("#counts").selectAll(".count")
     })
     .html(0);
 
-//ALPHABET
-d3.text("dictionaries/scrabble.txt", function(d) {
-    var words = d.toLowerCase().split("\n");
+var allowed = [8, 32, 37, 38, 39, 40];
 
-    var t = trie(words);
-    console.log(t);
-
-    d3.select(".sentence").on("keyup", function() {
-        alphabet.forEach(function(d) {
-            values[d] = 0; 
-        });
-        this.value.toUpperCase().split("").forEach(function(d) {
-            values[d] += 1;
-        });
-        
-        // update score
-        d3.select("#counts").selectAll(".count")
-            .data(d3.entries(values))
-            .html(function(d) {
-                return d.value;
-            })
-            .attr("class", function(d) {
-                if (d.value === 0) {
-                    return "count none";
-                } else if (d.value === 1) {
-                    return "count one";
-                } else if (d.value < 5) {
-                    return "count some";
-                }
-                return "count many";
-            });
-
-        // get suggestions         
-        if (!suggestions) {
-            return;
-        }
-        var remains = d3.entries(values).filter(function(d) {
-            return d.value === 0;
-        }).map(function(d) {
-            return d.key;
-        });
-        console.log(remains);        
-    });
+d3.select("#sentence").on("keydown", function(e) { 
+    //console.log(d3.event.keyCode);
+    if (allowed.indexOf(d3.event.keyCode) == -1 && (d3.event.keyCode < 65 || d3.event.keyCode > 90)) {
+        d3.event.preventDefault();
+        d3.event.stopPropagation();
+    }
 });
 
-function trie(words) {
-    var trie = {};
-    // Go through all the words in the dictionary
-    for ( var i = 0, l = words.length; i < l; i++ ) {
-        // Get all the letters that we need
-        var word = words[i], letters = word.split(""), cur = trie;
-     
-        // Loop through the letters
-        for ( var j = 0; j < letters.length; j++ ) {
-            var letter = letters[j], pos = cur[ letter ];
-     
-            // If nothing exists for this letter, create a leaf
-            if ( pos == null ) {
-                // If it's the end of the word, set a 0,
-                // otherwise make an object so we can continue
-                cur = cur[ letter ] = j === letters.length - 1 ? 0 : {};
-           
-            // If a final leaf already exists we need to turn it
-            // into an object to continue traversing
-            } else if ( pos === 0 ) {
-                cur = cur[ letter ] = { $: 0 };
-     
-            // Otherwise there is nothing to be set, so continue on
+//there's an invisible input field (#sentence) over the one (#display) that has HTML markup for strikethroughs
+d3.select("#sentence").on("keyup", function(e) {
+    var message = d3.select("#sentence").text();
+
+    //update scoreboard
+    alphabet.forEach(function(d) {
+        values[d] = 0; 
+    });
+
+    message.toUpperCase().split("").forEach(function(d) {
+        values[d] += 1;
+    });
+
+    var score = 0;
+
+    d3.select("#counts").selectAll(".count")
+        .data(d3.entries(values))
+        .html(function(d) {
+            if (!d.value) {
+                score = -1;
+            } else if (score !== -1) {
+                score += d.value;
+            }
+            return d.value;
+        })
+        .attr("class", function(d) {
+            if (d.value === 0) {
+                return "count none";
+            } else if (d.value === 1) {
+                return "count one";
+            } else if (d.value < 5) {
+                return "count some";
+            }
+            return "count many";
+        });
+
+    var pos = getCaretPosition(document.getElementById("sentence"));
+
+    document.getElementById("sentence").innerHTML = message;
+    
+    // tokenize
+    message = message.split(/\s+/);
+    
+    var html = "",
+        current_pos = 0;        
+        
+    message.forEach(function(d) {
+        // skip if the cursor is on this word
+        if (d === "" || d === " ") return;
+        if (pos >= current_pos && pos <= (current_pos + d.length)) {
+            html += "<span class='maybeword'>" + d + "</span> ";
+            if (!isWord(d.toLowerCase(), trie)) {
+                score = -2;
+            }
+        } else {
+            if (isWord(d.toLowerCase(), trie)) {
+                html += "<span class='aword'>" + d + "</span> ";
             } else {
-                cur = cur[ letter ];
+                score = -2;
+                html += "<span class='notword'>" + d + "</span> ";
             }
         }
+        current_pos += d.length + 1;
+    });
+    d3.select("#display").html(html);
+    
+    // get suggestions         
+    if (!suggestions) {
+        return;
     }
-    return trie;
-}
+    var remains = d3.entries(values).filter(function(d) {
+        return d.value === 0;
+    }).map(function(d) {
+        return d.key;
+    });
+
+    if (score === -1) {
+        d3.select(".send").style("display", "none");
+        d3.select("#myscore").html("Use all the letters to get a score");
+    } else if (score === -2) {
+        d3.select(".send").style("display", "none");
+        d3.select("#myscore").html("Invalid word in sentence");
+    } else {
+        d3.select(".send").style("display", "inline-block");
+        d3.select("#myscore").html(score);
+        d3.select(".send").html('<a href="https://twitter.com/share" class="twitter-share-button" id="tweet" data-text="' + (d3.select("#sentence").text() + " #a2z") + '" data-lang="en" data-url="http://mech.sc/16t1BBU">Tweet</a>');
+        twttr.widgets.load()        
+    }
+});
         </script>
+        <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="https://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
     </body>
 </html>

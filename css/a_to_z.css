@@ -2,9 +2,8 @@ body {
     background-color: #CCC;
 }
 
-.container {
+.app {
     background-color: #FFF;
-    width: 100%;
     max-width: 800px;
     margin: 10px auto;
     padding: 10px;
@@ -33,16 +32,72 @@ body {
 
 .letters {
     font-size: 24px;
-    font-family: 'Courier New', serif;
+    font-family: 'Courier New', serif;    
 }
 
 .counts {
     font-size: 14px;
 }
 
-.sentence {
+.sentences {
+    height: 40px;
     width: 100%;
-    max-width: 500px;
+}
+
+.sentence {
+    position: relative;
+    height: 40px;
+    border: 1px solid #CCC;
     margin: 10px auto;
+    padding: 5px 10px;
     display: block;
+    top: 0;
+    left: 0px;
+}
+
+#sentence {
+    background: none;
+    color: #000;
+    opacity: 0.5;
+    top: -62px;
+}
+
+#display .maybeword {
+    color: #CCC;
+}
+
+#display .notword {
+    text-decoration: line-through;
+}
+
+.board {
+    display: inline-block;
+    width: 50%;
+}
+
+.send {
+    text-align: right;
+    width: 45%;
+}
+
+@media(max-width: 450px) {
+    .letters {
+        font-size: 15px;
+    }
+    
+    .counts {
+        font-size: 11px;
+    }   
+
+    .sentences {
+        height: 75px;
+    }
+
+    .sentence {
+        height: 75px;
+    }
+    
+    #sentence {
+        top: -97px;
+    }    
 }
