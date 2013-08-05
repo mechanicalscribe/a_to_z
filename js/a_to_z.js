@@ -55,13 +55,15 @@ d3.select("#sentence").on("keyup", function(e) {
         values[d] += 1;
     });
 
-    var score = 0;
+    var badwords = false,
+        score = 0,
+        missing = [];
 
     d3.select("#counts").selectAll(".count")
         .data(d3.entries(values))
         .html(function(d) {
             if (!d.value) {
-                score = -1;
+                missing.push(d.key);
             } else if (score !== -1) {
                 score += d.value;
             }
@@ -90,17 +92,17 @@ d3.select("#sentence").on("keyup", function(e) {
         
     message.forEach(function(d) {
         // skip if the cursor is on this word
-        if (d === "" || d === " ") return;
+        if (!d || d === "" || d === " ") return;
         if (pos >= current_pos && pos <= (current_pos + d.length)) {
             html += "<span class='maybeword'>" + d + "</span> ";
-            if (!isWord(d.toLowerCase(), trie)) {
-                score = -2;
+            if (!isWord(d.toLowerCase(), dict)) {
+                badwords = true;
             }
         } else {
-            if (isWord(d.toLowerCase(), trie)) {
+            if (isWord(d.toLowerCase(), dict)) {
                 html += "<span class='aword'>" + d + "</span> ";
             } else {
-                score = -2;
+                badwords = true;
                 html += "<span class='notword'>" + d + "</span> ";
             }
         }
@@ -118,10 +120,12 @@ d3.select("#sentence").on("keyup", function(e) {
         return d.key;
     });
 
-    if (score === -1) {
+    console.log(missing);
+
+    if (missing.length > 0) {
         d3.select(".send").style("display", "none");
-        d3.select("#myscore").html("Use all the letters to get a score");
-    } else if (score === -2) {
+        d3.select("#myscore").html("Unused: " + missing.join(""));
+    } else if (badwords) {
         d3.select(".send").style("display", "none");
         d3.select("#myscore").html("Invalid word in sentence");
     } else {

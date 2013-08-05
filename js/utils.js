@@ -1,5 +1,7 @@
 function isWord( word, cur ) {
+    console.log(word, cur);
     cur = cur || dict;
+
 
 	for ( var node in cur ) {
 		if ( word.indexOf( node ) === 0 ) {
